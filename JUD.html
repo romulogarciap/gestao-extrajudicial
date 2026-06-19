@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Gestão Extrajudicial</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --az:#2563eb;--vm:#dc2626;--vd:#16a34a;--am:#d97706;
+  --bg:#f9fafb;--bd:#e5e7eb;
+  --tx:#111827;--tx2:#374151;--mut:#6b7280;--mut2:#9ca3af;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.08);
+  --shadow-md:0 2px 8px rgba(0,0,0,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:13px;line-height:1.5}
+
+/* ── TOPO ── */
+.topo{display:flex;justify-content:space-between;align-items:center;background:#111827;color:#fff;padding:12px 24px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+.topo h1{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.topo .sub{font-size:11px;opacity:.4;margin-left:4px;font-weight:400}
+.topo .acoes{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:5px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.btn:hover{filter:brightness(.92)}
+.btn-claro{background:rgba(255,255,255,.1);color:#d1d5db;border:1px solid rgba(255,255,255,.15)}
+.btn-az{background:var(--az);color:#fff}
+.btn-vd{background:var(--vd);color:#fff}
+.btn-vm{background:var(--vm);color:#fff}
+.btn-cinza{background:#f3f4f6;border:1px solid var(--bd);color:#374151}
+.aviso-salvo{font-size:11px;color:#6ee7b7}
+
+/* ── TABS ── */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--bd);overflow-x:auto;position:sticky;top:49px;z-index:99}
+.tab{padding:11px 20px;border:none;background:none;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+.tab:hover{color:var(--az)}
+.tab.active{color:var(--az);border-bottom-color:var(--az)}
+
+/* ── PAINÉIS ── */
+.painel{display:none;padding:20px 24px;min-height:calc(100vh - 90px)}
+.painel.active{display:block}
+
+/* ── BOX ── */
+.box{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.box-titulo{font-size:11px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;color:var(--mut2);text-transform:uppercase;letter-spacing:.6px}
+
+/* ── KPIs ── */
+.dash-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px}
+.dk{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s}
+.dk:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.dk::after{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:8px 0 0 8px}
+.dk.az::after{background:#2563eb}.dk.vm::after{background:#dc2626}.dk.vd::after{background:#16a34a}
+.dk.am::after{background:#d97706}.dk.vx::after{background:#7c3aed}.dk.cy::after{background:#0891b2}
+.dk.or::after{background:#ea580c}.dk.pk::after{background:#db2777}
+.dk .lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.dk .val{font-size:14px;font-weight:700;color:#111827;margin:2px 0;line-height:1.2}
+.dk .pct{font-size:10px;color:#6b7280;margin-top:1px}
+.dk .pct.r{color:#dc2626;font-weight:600}.dk .pct.g{color:#16a34a;font-weight:600}
+
+/* ── EMPRESA CARDS ── */
+.dash-empresa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.emp-card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:11px 13px;box-shadow:var(--shadow);border-left:3px solid #e5e7eb;transition:all .15s}
+.emp-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.emp-card.risk-alto{border-left-color:#dc2626}.emp-card.risk-med{border-left-color:#d97706}.emp-card.risk-ok{border-left-color:#16a34a}
+.emp-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:6px}
+.emp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.emp-nome{font-weight:600;font-size:11px;color:#374151;line-height:1.3;flex:1}
+.emp-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.emp-badge.r{background:#fee2e2;color:#991b1b}.emp-badge.a{background:#fef3c7;color:#92400e}.emp-badge.g{background:#dcfce7;color:#166534}
+.emp-val{font-size:14px;font-weight:700;color:#111827;margin:4px 0}
+.emp-meta{display:flex;gap:10px;font-size:10px;color:#9ca3af;margin-bottom:5px}
+.emp-bar-wrap{height:3px;background:#f3f4f6;border-radius:2px;overflow:hidden}
+.emp-bar-fill{height:100%;border-radius:2px}
+.emp-bar-fill.r{background:#dc2626}.emp-bar-fill.a{background:#d97706}.emp-bar-fill.g{background:#16a34a}
+
+/* ── TABELA ── */
+.tabela-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:#f9fafb}
+th{padding:8px 10px;text-align:left;font-weight:600;color:var(--mut);font-size:11px;border-bottom:1px solid var(--bd);white-space:nowrap;cursor:pointer}
+th:hover{color:var(--az)}
+td{padding:7px 10px;border-bottom:1px solid #f3f4f6;color:var(--tx2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+.tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.tag.venc{background:#fee2e2;color:#991b1b}.tag.avenc{background:#dcfce7;color:#166634}
+.tag.contrato{background:#dbeafe;color:#1e40af}.tag.sem{background:#f3f4f6;color:#6b7280}
+
+/* ── OBS CELL ── */
+.obs-cell{max-width:180px}
+.obs-preview{font-size:11px;color:#374151;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.obs-preview.has-link{display:flex;align-items:center;gap:4px}
+.obs-link-icon{color:#2563eb;font-size:12px;flex-shrink:0}
+.obs-btn{font-size:10px;color:#2563eb;text-decoration:none;cursor:pointer;background:none;border:none;padding:0;font-weight:600}
+.obs-btn:hover{text-decoration:underline}
+.obs-expandida{background:#f0f9ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 10px;font-size:11px;color:#1e3a5f;line-height:1.6;max-width:300px;white-space:pre-wrap;word-break:break-word}
+.obs-expandida a{color:#2563eb;text-decoration:underline}
+
+/* ── FILTROS ── */
+.filtros{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end}
+.filtro-campo{display:flex;flex-direction:column;gap:4px;min-width:130px}
+.filtro-campo label{font-size:10px;font-weight:600;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
+.filtro-campo input,.filtro-campo select{border:1px solid var(--bd);border-radius:5px;padding:6px 9px;font-size:12px;color:var(--tx);background:#fff;outline:none;transition:border .15s}
+.filtro-campo input:focus,.filtro-campo select:focus{border-color:var(--az)}
+
+/* ── RESUMO ── */
+.resumo{font-size:11px;color:var(--mut);margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);display:flex;gap:16px;flex-wrap:wrap}
+.resumo b{color:var(--tx2)}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.form-campo{display:flex;flex-direction:column;gap:4px}
+.form-campo label{font-size:10px;font-weight:600;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
+.form-campo input,.form-campo select,.form-campo textarea{border:1px solid var(--bd);border-radius:5px;padding:7px 10px;font-size:12px;color:var(--tx);background:#fff;outline:none;transition:border .15s;font-family:inherit}
+.form-campo input:focus,.form-campo select:focus,.form-campo textarea:focus{border-color:var(--az)}
+
+/* ── IMPORT ── */
+.import-area{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.status-import{font-size:12px;color:var(--mut);padding:4px 0}
+
+/* ── CARDS PAINEL ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:14px}
+.card-kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:11px 13px;box-shadow:var(--shadow)}
+.card-kpi .ck-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.card-kpi .ck-val{font-size:14px;font-weight:700;color:#111827}
+.card-kpi .ck-sub{font-size:10px;color:#6b7280;margin-top:2px}
+
+/* ── TOP 10 ── */
+.top10-lista{display:flex;flex-direction:column;gap:5px}
+.top10-item{display:flex;align-items:center;gap:8px;padding:4px 0}
+.top10-rank{width:18px;height:18px;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#f3f4f6;color:#374151}
+.top10-rank.t1{background:#fef3c7;color:#92400e}.top10-rank.t2{background:#f3f4f6;color:#374151}.top10-rank.t3{background:#fce7f3;color:#9d174d}
+.top10-nome{flex:1;font-size:11px;font-weight:600;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top10-emp{font-size:10px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+.top10-val{font-size:11px;font-weight:700;color:#111827;white-space:nowrap}
+.top10-bar-wrap{height:3px;background:#f3f4f6;border-radius:2px;overflow:hidden;margin-top:2px}
+.top10-bar-fill{height:100%;border-radius:2px;background:#2563eb}
+
+/* ── DASHBOARD ROW ── */
+.dash-row{display:grid;gap:14px;margin-bottom:14px}
+.dash-row.col3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:900px){.dash-row.col3{grid-template-columns:1fr}}
+.chart-wrap{position:relative;height:180px;margin:0 auto}
+.uf-item{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.uf-lbl{font-size:11px;color:#374151;font-weight:600;width:28px;flex-shrink:0}
+.uf-bar-wrap{flex:1;height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden}
+.uf-bar-fill{height:100%;border-radius:3px;background:#2563eb}
+.uf-val{font-size:10px;color:#6b7280;white-space:nowrap;min-width:90px;text-align:right}
+
+/* ── MODAL ── */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal-conteudo{background:#fff;border-radius:10px;width:90%;max-width:740px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:#fff;z-index:1}
+.modal-head h2{font-size:14px;font-weight:700;color:var(--tx)}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mut);line-height:1}
+.modal-body{padding:16px 20px}
+.hist-item{padding:10px;background:#f9fafb;border-radius:6px;margin-bottom:8px;border-left:3px solid var(--az)}
+.hist-data{font-size:10px;color:var(--mut);margin-bottom:3px}
+.hist-texto{font-size:12px;color:var(--tx2);word-break:break-word}
+.hist-texto a{color:#2563eb;text-decoration:underline}
+
+/* ── CONTRATO ── */
+.config-options{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.config-options button{padding:7px 14px;border-radius:6px;border:1px solid var(--bd);background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:var(--mut);transition:all .15s}
+.config-options button.active{background:var(--az);color:#fff;border-color:var(--az)}
+
+/* Parcelas editáveis */
+.parcela-row{display:grid;grid-template-columns:28px 1fr 1fr auto;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #f3f4f6}
+.parcela-row:last-child{border-bottom:none}
+.parcela-row-num{font-size:11px;font-weight:700;color:var(--mut);text-align:center}
+.parcela-row input{border:1px solid var(--bd);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--tx);outline:none;width:100%}
+.parcela-row input:focus{border-color:var(--az)}
+.parcela-row-del{background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;padding:2px 4px;border-radius:4px}
+.parcela-row-del:hover{background:#fee2e2}
+.parcelas-box{border:1px solid var(--bd);border-radius:6px;padding:10px;margin-top:10px;background:#f9fafb}
+.parcelas-box-header{display:grid;grid-template-columns:28px 1fr 1fr auto;gap:6px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.parcelas-box-header span{font-size:10px;font-weight:700;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
+
+.calc-tabela{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px}
+.calc-tabela td{padding:5px 8px;border-bottom:1px solid #f3f4f6;color:var(--tx2)}
+.calc-tabela td:first-child{color:var(--mut);font-weight:600;width:55%}
+.calc-tabela td:last-child{font-weight:700;color:var(--tx);text-align:right}
+.calc-tabela tr.tot-row td{background:#f0fdf4;color:#166534;font-weight:800;border-top:2px solid #16a34a}
+
+.info-row{display:flex;gap:10px;flex-wrap:wrap}
+.info-badge{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.info-badge label{font-size:10px;font-weight:600;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
+.info-badge input{border:1px solid var(--bd);border-radius:5px;padding:6px 9px;font-size:12px;color:var(--tx);outline:none;font-family:inherit}
+.info-badge input:focus{border-color:var(--az)}
+
+/* ── PREVIEW CONTRATO ── */
+.preview-wrapper{margin-top:14px}
+.preview-wrapper.hidden{display:none}
+.preview-contrato{font-family:'Times New Roman',serif;font-size:13pt;line-height:1.9;color:#111;padding:40px;border:1px solid var(--bd);border-radius:6px;background:#fff;text-align:justify}
+.preview-contrato .ctitulo{text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;text-decoration:underline;margin-bottom:24px;line-height:1.5}
+.preview-contrato .clausula-titulo{font-weight:bold;text-transform:uppercase;margin-top:20px;margin-bottom:4px}
+.preview-contrato p{margin-bottom:12px}
+.preview-contrato .parcela-linha{margin:4px 0 4px 20px}
+.preview-contrato .assinaturas-bloco{margin-top:60px}
+.preview-contrato .assin-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;text-align:center;margin-bottom:20px}
+.preview-contrato .assin-item{padding-top:60px}
+.preview-contrato .assin-linha{border-top:1px solid #111;padding-top:8px;font-size:12pt;font-weight:bold;text-transform:uppercase}
+.preview-contrato .assin-sub{font-size:11pt;font-weight:normal;margin-top:2px}
+.preview-contrato .testemunhas{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.preview-contrato .test-item{border-top:1px solid #111;padding-top:8px;font-size:11pt}
+
+/* ── SUGESTÕES ── */
+.sugestoes{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--bd);border-radius:6px;box-shadow:var(--shadow-md);z-index:50;max-height:200px;overflow-y:auto}
+.sug-item{padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid #f3f4f6;transition:background .1s}
+.sug-item:hover{background:#f0f9ff}
+.sug-item .sug-nome{font-weight:600;color:var(--tx)}
+.sug-item .sug-sub{font-size:10px;color:var(--mut)}
+.busca-wrap{position:relative}
+
+/* ── LINK DRIVE ── */
+.link-drive-badge{display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;text-decoration:none;cursor:pointer}
+.link-drive-badge:hover{background:#bfdbfe}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#f1f1f1}
+::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+</style>
+</head>
+<body>
+
+<!-- TOPO -->
+<div class="topo">
+  <h1>⚖️ Gestão Extrajudicial <span class="sub">Cobrança</span></h1>
+  <div class="acoes">
+    <span class="aviso-salvo" id="avisoSalvo"></span>
+    <button class="btn btn-claro" onclick="exportarBackup()">💾 Backup</button>
+    <label class="btn btn-claro" style="cursor:pointer">📂 Restaurar<input type="file" accept=".json" onchange="importarBackup(event)" hidden></label>
+    <button class="btn btn-vm" onclick="limparTudo()">🗑️ Limpar</button>
+  </div>
+</div>
+
+<!-- ABAS -->
+<div class="tabs">
+  <button class="tab active" onclick="trocarAba('dashboard',this)">📊 Dashboard</button>
+  <button class="tab" onclick="trocarAba('painel',this)">📋 Devedores</button>
+  <button class="tab" onclick="trocarAba('contrato',this)">📝 Contrato</button>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="painel active" id="dashboard">
+  <div class="dash-kpis" id="dashKpis"></div>
+  <div class="box">
+    <div class="box-titulo">🏢 Performance por Empresa</div>
+    <div class="dash-empresa-grid" id="dashEmpresaGrid"></div>
+  </div>
+  <div class="dash-row col3">
+    <div class="box" style="margin-bottom:0">
+      <div class="box-titulo">🎯 Carteira por Status</div>
+      <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+      <div id="donutLegend" style="margin-top:10px"></div>
+    </div>
+    <div class="box" style="margin-bottom:0">
+      <div class="box-titulo">📍 Saldo por UF</div>
+      <div id="dashUF"></div>
+    </div>
+    <div class="box" style="margin-bottom:0">
+      <div class="box-titulo">🏆 Top 10 Maiores Devedores</div>
+      <div class="top10-lista" id="dashTop10"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAINEL DEVEDORES ══ -->
+<div class="painel" id="painel">
+  <div class="box">
+    <div class="box-titulo">📥 Importar / Adicionar</div>
+    <div class="import-area">
+      <label class="btn btn-vd" style="cursor:pointer">📊 Importar Excel
+        <input type="file" accept=".xlsx,.xls,.csv" onchange="importarExcel(event)" hidden>
+      </label>
+      <button class="btn btn-az" onclick="adicionarManual()">+ Adicionar</button>
+      <button class="btn btn-cinza" onclick="exportarExcel()">⬇️ Exportar Excel</button>
+    </div>
+    <div class="status-import" id="statusImport"></div>
+  </div>
+  <div class="cards" id="cardsPainel"></div>
+  <div class="box">
+    <div class="filtros">
+      <div class="filtro-campo" style="flex:1;min-width:180px">
+        <label>🔍 Buscar</label>
+        <input type="text" id="fBusca" oninput="renderTabela()" placeholder="Cliente, código..."/>
+      </div>
+      <div class="filtro-campo">
+        <label>Empresa</label>
+        <select id="fGrupo" onchange="renderTabela()"><option value="">Todas</option></select>
+      </div>
+      <div class="filtro-campo">
+        <label>UF</label>
+        <select id="fUF" onchange="renderTabela()"><option value="">Todas</option></select>
+      </div>
+      <div class="filtro-campo">
+        <label>Status</label>
+        <select id="fStatus" onchange="renderTabela()">
+          <option value="">Todos</option>
+          <option value="venc">Vencido</option>
+          <option value="avenc">A vencer</option>
+          <option value="contrato">Com contrato</option>
+        </select>
+      </div>
+      <div class="filtro-campo">
+        <label>Ordenar por</label>
+        <select id="fOrdem" onchange="renderTabela()">
+          <option value="saldo_desc">Maior saldo</option>
+          <option value="saldo_asc">Menor saldo</option>
+          <option value="vencimento_asc">Venc. mais antigo</option>
+          <option value="cliente_asc">Nome A-Z</option>
+        </select>
+      </div>
+    </div>
+    <div class="tabela-wrap">
+      <table id="tabelaDados">
+        <thead><tr>
+          <th onclick="ordenarCol('cliente')">Cliente</th>
+          <th onclick="ordenarCol('codigo')">Código</th>
+          <th onclick="ordenarCol('grupo')">Empresa</th>
+          <th onclick="ordenarCol('filial')">Filial</th>
+          <th onclick="ordenarCol('uf')">UF</th>
+          <th onclick="ordenarCol('vencimento')">Vencimento</th>
+          <th onclick="ordenarCol('saldo')" style="text-align:right">Saldo</th>
+          <th>Status</th>
+          <th>Informações</th>
+          <th>Ações</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="resumo" id="resumoPainel"></div>
+  </div>
+</div>
+
+<!-- ══ CONTRATO ══ -->
+<div class="painel" id="contrato">
+  <div class="box">
+    <div class="box-titulo">📝 Gerar Contrato</div>
+    <div class="config-options">
+      <button id="tipoConfissao" class="active" onclick="setTipoContrato('confissao',this)">Confissão de Dívida</button>
+      <button id="tipoParcelamento" onclick="setTipoContrato('parcelamento',this)">Confissão + Parcelamento</button>
+    </div>
+    <div class="filtros" style="margin-bottom:10px">
+      <div class="filtro-campo busca-wrap" style="flex:1;min-width:200px">
+        <label>Buscar Devedor na Base</label>
+        <input type="text" id="buscaDevedorContrato" oninput="sugerirDevedores()" placeholder="Digite o nome ou código..."/>
+        <div class="sugestoes" id="sugestoesList" style="display:none"></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <!-- Devedor -->
+      <div class="box" style="margin-bottom:0">
+        <div class="box-titulo">👤 Dados do Devedor</div>
+        <div class="form-grid">
+          <div class="form-campo" style="grid-column:1/-1"><label>Nome / Razão Social</label><input id="cNome"/></div>
+          <div class="form-campo"><label>CPF / CNPJ</label><input id="cDoc"/></div>
+          <div class="form-campo"><label>RG / IE</label><input id="cRg"/></div>
+          <div class="form-campo"><label>Profissão / Qualificação</label><input id="cProf" placeholder="ex: agricultor, empresário..."/></div>
+          <div class="form-campo"><label>Nacionalidade</label><input id="cNac" value="brasileiro(a)"/></div>
+          <div class="form-campo"><label>Telefone</label><input id="cTel"/></div>
+          <div class="form-campo"><label>E-mail (para boleto)</label><input id="cEmail" placeholder="email@exemplo.com"/></div>
+          <div class="form-campo" style="grid-column:1/-1"><label>Endereço completo</label><input id="cEnd" placeholder="Rua, nº, Bairro, CEP"/></div>
+          <div class="form-campo"><label>Cidade</label><input id="cCidade"/></div>
+          <div class="form-campo"><label>Estado (ex: Minas Gerais)</label><input id="cUFExtenso" placeholder="Minas Gerais"/></div>
+          <div class="form-campo"><label>UF (sigla)</label><input id="cUF" maxlength="2"/></div>
+        </div>
+      </div>
+      <!-- Credor -->
+      <div class="box" style="margin-bottom:0">
+        <div class="box-titulo">🏢 Dados do Credor</div>
+        <div class="form-grid">
+          <div class="form-campo" style="grid-column:1/-1"><label>Razão Social</label><input id="crNome"/></div>
+          <div class="form-campo"><label>CNPJ</label><input id="crDoc"/></div>
+          <div class="form-campo"><label>Representante Legal</label><input id="crRep"/></div>
+          <div class="form-campo"><label>CPF do Representante</label><input id="crRepDoc"/></div>
+          <div class="form-campo" style="grid-column:1/-1"><label>Endereço completo</label><input id="crEnd" placeholder="Rua, nº, Bairro, CEP"/></div>
+          <div class="form-campo"><label>Cidade</label><input id="crCidade"/></div>
+          <div class="form-campo"><label>Estado (ex: Minas Gerais)</label><input id="crUFExtenso" placeholder="Minas Gerais"/></div>
+          <div class="form-campo"><label>UF (sigla)</label><input id="crUF" maxlength="2"/></div>
+          <div class="form-campo" style="grid-column:1/-1"><label>E-mail do Credor</label><input id="crEmail" placeholder="financeiro@empresa.com.br"/></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Valores -->
+    <div class="box" style="margin-bottom:14px">
+      <div class="box-titulo">💰 Valores e Condições</div>
+      <div class="form-grid">
+        <div class="form-campo"><label>Valor Total da Dívida (R$)</label><input type="number" step="0.01" id="vOriginal" oninput="calcularContrato()" placeholder="0,00"/></div>
+        <div class="form-campo"><label>Entrada (R$)</label><input type="number" step="0.01" id="vEntrada" value="0" oninput="calcularContrato()"/></div>
+        <div class="form-campo"><label>Nº Parcelas</label><input type="number" min="1" id="vParcelas" value="1" oninput="calcularContrato()"/></div>
+        <div class="form-campo"><label>Data de assinatura</label><input type="date" id="vDataAssinatura"/></div>
+        <div class="form-campo"><label>Multa por atraso (%)</label><input type="number" step="0.1" id="cfgMulta" value="2" oninput="calcularContrato()"/></div>
+        <div class="form-campo"><label>Juros mora (% a.m.)</label><input type="number" step="0.01" id="cfgJuros" value="1" oninput="calcularContrato()"/></div>
+      </div>
+      <div class="info-row" style="margin-top:12px">
+        <div class="info-badge"><label>💳 Desp. Bancária (R$)</label><input type="number" step="0.01" id="vDespBanc" value="0" oninput="calcularContrato()"></div>
+        <div class="info-badge"><label>📋 PEFIN (R$)</label><input type="number" step="0.01" id="vPefin" value="0" oninput="calcularContrato()"></div>
+        <div class="info-badge"><label>📌 Outros (R$)</label><input type="number" step="0.01" id="vOutros" value="0" oninput="calcularContrato()"></div>
+      </div>
+
+      <!-- Origem da dívida -->
+      <div style="margin-top:14px">
+        <div class="box-titulo">📄 Origem da Dívida (Parágrafo Único)</div>
+        <div class="form-campo">
+          <label>Descreva os títulos / origem (ex: título nº 000123 – vcto 30/04/2025 – R$ 62.400,00)</label>
+          <textarea id="vOrigemDivida" rows="3" placeholder="Ex: título nº 0000237179-002 – vcto 30/04/2025 – R$ 62.400,00"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parcelas editáveis -->
+    <div class="box" style="margin-bottom:14px" id="boxParcelasContainer">
+      <div class="box-titulo">📅 Parcelas do Parcelamento</div>
+      <div id="boxParcelas"></div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center" id="addParcelaBtn" style="display:none">
+        <button class="btn btn-cinza" style="font-size:11px" onclick="adicionarParcela()">+ Parcela</button>
+        <span style="font-size:11px;color:var(--mut)" id="totalParcelasInfo"></span>
+      </div>
+    </div>
+
+    <!-- Cálculo -->
+    <div class="box">
+      <div class="box-titulo">🧮 Resumo do Cálculo</div>
+      <table class="calc-tabela"><tbody id="tabelaCalculo"></tbody></table>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-az" onclick="gerarPreviewContrato()">👁️ Pré-visualizar</button>
+        <button class="btn btn-vd" onclick="emitirContrato()">✅ Emitir Contrato</button>
+        <button class="btn btn-cinza" onclick="imprimirContrato()">🖨️ Imprimir</button>
+        <button class="btn btn-cinza" onclick="limparContrato()">🧹 Limpar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-wrapper hidden" id="previewWrapper">
+    <div class="box">
+      <div class="box-titulo">📄 Pré-visualização do Contrato</div>
+      <div class="preview-contrato" id="previewContrato"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modalHist">
+  <div class="modal-conteudo">
+    <div class="modal-head">
+      <h2 id="mhTitulo">Histórico</h2>
+      <button class="modal-close" onclick="fecharHistorico()">×</button>
+    </div>
+    <div class="modal-body" id="mhBody"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════
+const STORAGE_KEY='gestao_extrajudicial_v4';
+let DADOS=[];
+let tipoContrato='confissao';
+let chartStatusInst=null;
+let PARCELAS_EDIT=[]; // parcelas editáveis do contrato
+window._corEmp={};
+
+const PALETA=['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#ea580c','#db2777','#059669','#4f46e5','#b45309','#0284c7','#65a30d','#9333ea','#e11d48'];
+
+// ═══════════════════════════════════════════
+// MAPEAMENTO ROBUSTO
+// ═══════════════════════════════════════════
+const MAP_COLUNAS={
+  cliente:['cliente','nome','name','razao','razão','devedor','sacado','nome cliente','razao social','razão social'],
+  codigo:['codigo','código','cod','nf','nota','duplicata','titulo','título','cdcli','cd_cli','code'],
+  grupo:['empresa','grupo','credor','razao social','razão social','unidade','company','grupoempresa','grupo_empresa','filial_grupo'],
+  filial:['filial','loja','sucursal','branch','unidade'],
+  uf:['uf','estado','state','sg_uf','sigla'],
+  vencimento:['vencimento','venc','data venc','dt venc','data vencimento','dtvenc','dt_venc','datavenc','data_venc','competencia','competência','mes/ano','mês/ano','ano','data'],
+  saldo:['saldo devedor','saldo','valor saldo','valor titulo','vl titulo','vl_titulo','valor','vlr','total','montante','saldo_devedor','saldodevedor','value'],
+  obs:['informacoes','informações','informacao','informação','obs','observacao','observação','nota','note','descricao','descrição','info']
+};
+
+function semAcento(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
+
+function acharCampo(nomeColuna){
+  const norm=semAcento(nomeColuna);
+  for(const[campo,aliases]of Object.entries(MAP_COLUNAS)){
+    if(aliases.some(a=>semAcento(a)===norm))return campo;
+  }
+  for(const[campo,aliases]of Object.entries(MAP_COLUNAS)){
+    for(const a of [...aliases].sort((x,y)=>y.length-x.length)){
+      const an=semAcento(a);
+      if(norm.includes(an)||an.includes(norm))return campo;
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════
+// UTILITÁRIOS
+// ═══════════════════════════════════════════
+function uid(){return'id'+Date.now()+Math.random().toString(36).slice(2,7);}
+
+function num(v){
+  if(v===null||v===undefined||v==='')return 0;
+  if(typeof v==='number')return isNaN(v)?0:v;
+  let s=String(v).trim().replace(/R\$/gi,'').replace(/\s/g,'');
+  if(/^\d{1,3}(\.\d{3})+(,\d*)$/.test(s))s=s.replace(/\./g,'').replace(',','.');
+  else if(/^\d+(,\d*)$/.test(s))s=s.replace(',','.');
+  const n=parseFloat(s.replace(/[^0-9.\-]/g,''));
+  return isNaN(n)?0:n;
+}
+
+function moeda(v){return num(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+
+function dataBR(d){
+  if(!d)return'—';
+  if(d instanceof Date)return isNaN(d)?'—':d.toLocaleDateString('pt-BR');
+  if(typeof d==='string'&&d.includes('-')){
+    const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;
+  }
+  return String(d);
+}
+
+function dataExtenso(iso){
+  if(!iso)return'';
+  const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const[y,m,d]=iso.split('-').map(Number);
+  return`${d} de ${meses[m-1]} de ${y}`;
+}
+
+function parseData(v){
+  if(!v&&v!==0)return null;
+  if(v instanceof Date)return isNaN(v)?null:v;
+  if(typeof v==='number'){
+    if(v>40000&&v<60000){const d=new Date(Math.round((v-25569)*86400*1000));return isNaN(d)?null:d;}
+    return null;
+  }
+  if(typeof v==='string'){
+    const s=v.trim();if(!s)return null;
+    let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+    m=s.match(/^(\d{1,2})[\/\-](\d{4})$/);if(m)return new Date(+m[2],+m[1]-1,1);
+    m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+    m=s.match(/^(\d{4})[\/\-](\d{1,2})$/);if(m)return new Date(+m[1],+m[2]-1,1);
+    const d=new Date(s);return isNaN(d)?null:d;
+  }
+  return null;
+}
+
+function corEmpresa(grp){
+  if(!grp)return'#9ca3af';
+  if(!window._corEmp[grp]){const idx=Object.keys(window._corEmp).length;window._corEmp[grp]=PALETA[idx%PALETA.length];}
+  return window._corEmp[grp];
+}
+
+function mostrarAviso(msg,cor='#6ee7b7'){
+  const el=document.getElementById('avisoSalvo');
+  el.style.color=cor;el.textContent=msg;
+  setTimeout(()=>el.textContent='',3000);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// Detecta URLs e transforma em links
+function linkificar(texto){
+  if(!texto)return'—';
+  const urlRegex=/(https?:\/\/[^\s<>"]+)/g;
+  return esc(texto).replace(urlRegex,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+// Exibe obs com tooltip/expand e link de drive
+function renderObs(d){
+  const obs=d.obs||'';
+  const link=d.linkContrato||'';
+  let html='';
+  if(link){
+    html+=`<a href="${esc(link)}" target="_blank" class="link-drive-badge" title="Abrir PDF no Drive">📎 PDF</a> `;
+  }
+  if(obs){
+    const curto=obs.length>40?obs.slice(0,40)+'…':obs;
+    html+=`<span class="obs-preview" title="${esc(obs)}" onclick="expandirObs('${d.id}')" style="cursor:pointer">${esc(curto)}</span>`;
+  } else if(!link){
+    html='<span style="color:#d1d5db">—</span>';
+  }
+  return html;
+}
+
+function expandirObs(id){
+  const d=DADOS.find(x=>x.id===id);if(!d)return;
+  const obs=d.obs||'';
+  const link=d.linkContrato||'';
+  // Mostra no modal de histórico
+  document.getElementById('mhTitulo').textContent='📋 Informações: '+d.cliente;
+  document.getElementById('mhBody').innerHTML=`
+    <div style="margin-bottom:14px">
+      ${link?`<div style="margin-bottom:10px"><a href="${esc(link)}" target="_blank" class="link-drive-badge" style="font-size:12px;padding:6px 12px">📎 Abrir Contrato PDF no Drive</a></div>`:''}
+      <div class="obs-expandida">${linkificar(obs)||'<span style="color:#9ca3af">Sem informações registradas.</span>'}</div>
+    </div>
+    <button class="btn btn-cinza" onclick="fecharHistorico()">Fechar</button>`;
+  document.getElementById('modalHist').classList.add('open');
+}
+
+// Extenso simples de valores
+function valorExtenso(v){
+  v=Math.round(num(v)*100)/100;
+  if(v===0)return'zero reais';
+  const inteiro=Math.floor(v);
+  const cents=Math.round((v-inteiro)*100);
+  function centenas(n){
+    if(n===0)return'';
+    const u=['','um','dois','três','quatro','cinco','seis','sete','oito','nove'];
+    const d10=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+    const e10=['dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+    const c100=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+    if(n===100)return'cem';
+    let s='';
+    const ce=Math.floor(n/100),r=n%100;
+    if(ce)s+=c100[ce];
+    if(ce&&r)s+=' e ';
+    if(r<10)s+=u[r];
+    else if(r<20)s+=e10[r-10];
+    else{const dz=Math.floor(r/10),un=r%10;s+=d10[dz];if(un)s+=' e '+u[un];}
+    return s.trim();
+  }
+  let res='';
+  const mi=Math.floor(inteiro/1000000),ml=Math.floor((inteiro%1000000)/1000),un=inteiro%1000;
+  if(mi)res+=centenas(mi)+(mi===1?' milhão':' milhões');
+  if(ml){if(res)res+=' e ';res+=(ml===1?'mil':centenas(ml)+' mil');}
+  if(un){if(res&&(ml||mi))res+=' e ';res+=centenas(un);}
+  if(!res)res='zero';
+  res+=(inteiro===1?' real':' reais');
+  if(cents)res+=' e '+centenas(cents)+(cents===1?' centavo':' centavos');
+  return res;
+}
+
+// ═══════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════
+function salvar(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(DADOS));}
+  catch(e){mostrarAviso('⚠️ Erro ao salvar','#fca5a5');}
+  const el=document.getElementById('avisoSalvo');
+  el.style.color='#6ee7b7';el.textContent='✓ '+new Date().toLocaleTimeString('pt-BR');
+  clearTimeout(window._tSalvo);window._tSalvo=setTimeout(()=>el.textContent='',2500);
+}
+
+function carregar(){
+  try{
+    const s=localStorage.getItem(STORAGE_KEY);
+    if(s){
+      const parsed=JSON.parse(s);
+      DADOS=Array.isArray(parsed)?parsed:(parsed.dados||[]);
+      [...new Set(DADOS.map(d=>d.grupo).filter(Boolean))].forEach(g=>corEmpresa(g));
+      renderTudo();
+    }
+  }catch(e){DADOS=[];}
+}
+
+function exportarBackup(){
+  const blob=new Blob([JSON.stringify(DADOS,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='backup_gestao_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  mostrarAviso('✅ Backup salvo!');
+}
+
+function importarBackup(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const obj=JSON.parse(ev.target.result);
+      const arr=Array.isArray(obj)?obj:(obj.dados||[]);
+      if(!confirm(`Restaurar ${arr.length} registros?`))return;
+      DADOS=arr.map(d=>({id:d.id||uid(),historico:d.historico||[],temContrato:!!d.temContrato,...d}));
+      window._corEmp={};
+      [...new Set(DADOS.map(d=>d.grupo).filter(Boolean))].forEach(g=>corEmpresa(g));
+      salvar();renderTudo();mostrarAviso('✅ Backup restaurado!');
+    }catch{mostrarAviso('❌ Arquivo inválido','#fca5a5');}
+  };
+  r.readAsText(f);e.target.value='';
+}
+
+function limparTudo(){
+  if(!confirm('Apagar TODOS os dados?'))return;
+  if(!confirm('Confirmar exclusão total?'))return;
+  DADOS=[];window._corEmp={};salvar();renderTudo();mostrarAviso('🗑️ Dados apagados','#fca5a5');
+}
+
+// ═══════════════════════════════════════════
+// IMPORTAR EXCEL
+// ═══════════════════════════════════════════
+function importarExcel(e){
+  const f=e.target.files[0];if(!f)return;
+  const st=document.getElementById('statusImport');
+  st.textContent='⏳ Lendo arquivo...';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true});
+      let novos=[];let abasLidas=0;
+      wb.SheetNames.forEach(nomeAba=>{
+        const ws=wb.Sheets[nomeAba];
+        const matrizRaw=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+        const matrizTxt=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+        if(!matrizRaw.length||!matrizRaw[0].length)return;
+        const cabecalho=(matrizRaw[0]||[]).map(c=>semAcento(String(c)));
+        const temCab=cabecalho.some(c=>/cliente|saldo|empresa|grupo|venc|filial|uf|estado|razao|devedor|informac|obs|info/.test(c));
+        let pos={};
+        if(temCab){
+          cabecalho.forEach((t,i)=>{const campo=acharCampo(t);if(campo&&pos[campo]===undefined)pos[campo]=i;});
+        }else{
+          pos={grupo:0,filial:1,uf:2,codigo:3,cliente:4,vencimento:5,saldo:6,obs:7};
+        }
+        const linhaInicio=temCab?1:0;
+        for(let r=linhaInicio;r<matrizRaw.length;r++){
+          const lR=matrizRaw[r]||[];const lT=matrizTxt[r]||[];
+          if(!lR.length||lR.every(c=>c===''||c===null||c===undefined))continue;
+          const getR=c=>pos[c]!==undefined?lR[pos[c]]:'';
+          const getT=c=>pos[c]!==undefined?String(lT[pos[c]]||'').trim():'';
+          const saldo=num(getR('saldo'));
+          const cliente=getT('cliente').toUpperCase();
+          if(!cliente&&saldo===0)continue;
+          let vencRaw=getR('vencimento'),vencTexto=getT('vencimento'),vencimento='';
+          if(vencRaw instanceof Date&&!isNaN(vencRaw)){
+            const d=vencRaw;
+            vencimento=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          }else if(typeof vencRaw==='number'&&vencRaw>40000){
+            const d=new Date(Math.round((vencRaw-25569)*86400*1000));
+            if(!isNaN(d))vencimento=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          }else if(vencTexto){vencimento=vencTexto;}
+          novos.push({id:uid(),cliente:cliente||'(sem nome)',codigo:getT('codigo'),grupo:getT('grupo')||(abasLidas===0?nomeAba:''),filial:getT('filial'),uf:getT('uf').toUpperCase().slice(0,2),vencimento,saldo,obs:getT('obs'),linkContrato:'',historico:[],temContrato:false,contratoData:null});
+        }
+        abasLidas++;
+      });
+      if(!Array.isArray(DADOS))DADOS=[];
+      DADOS=DADOS.concat(novos);
+      [...new Set(DADOS.map(d=>d.grupo).filter(Boolean))].forEach(g=>corEmpresa(g));
+      salvar();renderTudo();
+      const totLote=novos.reduce((s,d)=>s+num(d.saldo),0);
+      const totGeral=DADOS.reduce((s,d)=>s+num(d.saldo),0);
+      st.textContent=`✅ ${novos.length} registros importados de ${wb.SheetNames.length} aba(s). Lote: ${moeda(totLote)} · Total geral: ${moeda(totGeral)}`;
+      e.target.value='';
+    }catch(err){st.textContent='❌ Erro: '+err.message;console.error(err);}
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function exportarExcel(){
+  if(!DADOS.length){mostrarAviso('Nenhum dado para exportar','#fca5a5');return;}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const rows=DADOS.map(d=>({Cliente:d.cliente,Código:d.codigo,Empresa:d.grupo,Filial:d.filial,UF:d.uf,Vencimento:dataBR(parseData(d.vencimento)),Saldo:num(d.saldo),Status:d.temContrato?'Com contrato':(()=>{const dt=parseData(d.vencimento);return dt&&Math.floor((hoje-dt)/86400000)>0?'Vencido':'A vencer';})(),Informações:d.obs||'',LinkContrato:d.linkContrato||''}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:30},{wch:14},{wch:20},{wch:12},{wch:6},{wch:12},{wch:14},{wch:12},{wch:40},{wch:50}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Devedores');
+  XLSX.writeFile(wb,'devedores_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+function adicionarManual(){
+  DADOS.unshift({id:uid(),cliente:'Novo Cliente',codigo:'',grupo:'',filial:'',uf:'',vencimento:'',saldo:0,obs:'',linkContrato:'',historico:[],temContrato:false,contratoData:null});
+  salvar();renderTabela();trocarAba('painel',document.querySelectorAll('.tab')[1]);
+}
+
+// ═══════════════════════════════════════════
+// ABAS
+// ═══════════════════════════════════════════
+function trocarAba(id,btn){
+  document.querySelectorAll('.painel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');btn.classList.add('active');
+  if(id==='dashboard')renderDashboard();
+  if(id==='painel')renderTabela();
+}
+
+function renderTudo(){renderDashboard();renderTabela();popularFiltros();}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard(){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const total=DADOS.reduce((a,d)=>a+num(d.saldo),0);
+  let vencido=0,avencer=0,contratos=0,diasTotal=0,diasCount=0;
+  const porCliente={};
+  DADOS.forEach(d=>{
+    const dt=parseData(d.vencimento);
+    if(d.temContrato)contratos++;
+    if(dt){const diff=Math.floor((hoje-dt)/86400000);if(diff>0){vencido+=num(d.saldo);diasTotal+=diff;diasCount++;}else avencer+=num(d.saldo);}
+    else vencido+=num(d.saldo);
+    if(!porCliente[d.cliente])porCliente[d.cliente]=0;
+    porCliente[d.cliente]+=num(d.saldo);
+  });
+  const clientes=new Set(DADOS.map(d=>d.cliente)).size;
+  const empresas=new Set(DADOS.map(d=>d.grupo).filter(Boolean)).size;
+  const ticket=clientes>0?total/clientes:0;
+  const diasMed=diasCount>0?Math.round(diasTotal/diasCount):0;
+  const top3=Object.values(porCliente).sort((a,b)=>b-a).slice(0,3);
+  const conc3=total>0?((top3.reduce((a,v)=>a+v,0)/total)*100):0;
+  const pctVenc=total>0?((vencido/total)*100).toFixed(1):0;
+  const pctAV=total>0?((avencer/total)*100).toFixed(1):0;
+
+  document.getElementById('dashKpis').innerHTML=`
+    <div class="dk az"><div class="lbl">Saldo Total</div><div class="val">${moeda(total)}</div><div class="pct">${DADOS.length} títulos</div></div>
+    <div class="dk vm"><div class="lbl">Vencido</div><div class="val">${moeda(vencido)}</div><div class="pct r">${pctVenc}% da carteira</div></div>
+    <div class="dk vd"><div class="lbl">A Vencer</div><div class="val">${moeda(avencer)}</div><div class="pct g">${pctAV}% da carteira</div></div>
+    <div class="dk am"><div class="lbl">Clientes</div><div class="val">${clientes}</div><div class="pct">${empresas} empresa(s)</div></div>
+    <div class="dk vx"><div class="lbl">Ticket Médio</div><div class="val">${moeda(ticket)}</div><div class="pct">por cliente</div></div>
+    <div class="dk cy"><div class="lbl">Conc. Top 3</div><div class="val">${conc3.toFixed(1)}%</div><div class="pct">dos 3 maiores</div></div>
+    <div class="dk or"><div class="lbl">Dias Méd. Venc.</div><div class="val">${diasMed}d</div><div class="pct r">média vencidos</div></div>
+    <div class="dk pk"><div class="lbl">Contratos</div><div class="val">${contratos}</div><div class="pct">${DADOS.length} registros</div></div>`;
+
+  const porGrupo={};
+  DADOS.forEach(d=>{
+    const g=d.grupo||'(sem empresa)';
+    if(!porGrupo[g])porGrupo[g]={saldo:0,qtd:0,vencQtd:0};
+    porGrupo[g].saldo+=num(d.saldo);porGrupo[g].qtd++;
+    const dt=parseData(d.vencimento);
+    if(!dt||Math.floor((hoje-dt)/86400000)>0)porGrupo[g].vencQtd++;
+  });
+  const gruposArr=Object.entries(porGrupo).sort((a,b)=>b[1].saldo-a[1].saldo);
+  const maxEmp=gruposArr[0]?gruposArr[0][1].saldo:1;
+  document.getElementById('dashEmpresaGrid').innerHTML=gruposArr.map(([g,info])=>{
+    const pct=total>0?((info.saldo/total)*100).toFixed(1):0;
+    const pctVencGrp=info.qtd>0?Math.round((info.vencQtd/info.qtd)*100):0;
+    const barW=maxEmp>0?Math.round((info.saldo/maxEmp)*100):0;
+    const risk=pctVencGrp>=90?'risk-alto':pctVencGrp>=50?'risk-med':'risk-ok';
+    const badgeCls=pctVencGrp>=90?'r':pctVencGrp>=50?'a':'g';
+    const barCls=pctVencGrp>=90?'r':pctVencGrp>=50?'a':'g';
+    const cor=corEmpresa(g);
+    return`<div class="emp-card ${risk}"><div class="emp-header"><div class="emp-dot" style="background:${cor}"></div><div class="emp-nome">${g}</div><div class="emp-badge ${badgeCls}">${pctVencGrp}% venc.</div></div><div class="emp-val">${moeda(info.saldo)}</div><div class="emp-meta"><span>📋 ${info.qtd} título${info.qtd!==1?'s':''}</span><span>📊 ${pct}% do total</span></div><div class="emp-bar-wrap"><div class="emp-bar-fill ${barCls}" style="width:${barW}%"></div></div></div>`;
+  }).join('');
+
+  const sc={vencido:0,avencer:0,contrato:0};const sv={vencido:0,avencer:0,contrato:0};
+  DADOS.forEach(d=>{
+    const dt=parseData(d.vencimento);const s=num(d.saldo);
+    if(d.temContrato){sc.contrato++;sv.contrato+=s;}
+    else if(!dt||Math.floor((hoje-dt)/86400000)>0){sc.vencido++;sv.vencido+=s;}
+    else{sc.avencer++;sv.avencer+=s;}
+  });
+  if(chartStatusInst){chartStatusInst.destroy();chartStatusInst=null;}
+  const ctx=document.getElementById('chartStatus');
+  if(ctx){
+    chartStatusInst=new Chart(ctx,{type:'doughnut',data:{labels:['Vencido','A Vencer','Com Contrato'],datasets:[{data:[sc.vencido,sc.avencer,sc.contrato],backgroundColor:['#dc2626','#16a34a','#2563eb'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:true,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${moeda(sv[['vencido','avencer','contrato'][c.dataIndex]])})`}}}}});
+  }
+  document.getElementById('donutLegend').innerHTML=`<div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">${[['#dc2626','Vencido',sc.vencido,sv.vencido],['#16a34a','A Vencer',sc.avencer,sv.avencer],['#2563eb','Contrato',sc.contrato,sv.contrato]].map(([c,l,n,v])=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span><span style="color:#374151;flex:1">${l}</span><span style="color:#9ca3af">${n}</span><span style="color:#111827;font-weight:700;min-width:80px;text-align:right">${moeda(v)}</span></div>`).join('')}</div>`;
+
+  const porUF={};DADOS.forEach(d=>{const uf=d.uf||'??';if(!porUF[uf])porUF[uf]=0;porUF[uf]+=num(d.saldo);});
+  const ufArr=Object.entries(porUF).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxUF=ufArr[0]?ufArr[0][1]:1;
+  document.getElementById('dashUF').innerHTML=ufArr.map(([uf,val])=>`<div class="uf-item"><span class="uf-lbl">${uf}</span><div class="uf-bar-wrap"><div class="uf-bar-fill" style="width:${Math.round((val/maxUF)*100)}%"></div></div><span class="uf-val">${moeda(val)}</span></div>`).join('');
+
+  const porClienteArr=Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxTop=porClienteArr[0]?porClienteArr[0][1]:1;
+  document.getElementById('dashTop10').innerHTML=porClienteArr.length?porClienteArr.map(([nome,val],i)=>{
+    const emp=DADOS.find(d=>d.cliente===nome)?.grupo||'';
+    const rankCls=i===0?'t1':i===1?'t2':i===2?'t3':'';
+    const barW=Math.round((val/maxTop)*100);
+    return`<div class="top10-item"><div class="top10-rank ${rankCls}">${i+1}</div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:center;gap:4px"><span class="top10-nome" title="${nome}">${nome}</span><span class="top10-val">${moeda(val)}</span></div><div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:1px"><span class="top10-emp" title="${emp}">${emp}</span><span style="font-size:10px;color:#9ca3af">${total>0?((val/total)*100).toFixed(1):0}%</span></div><div class="top10-bar-wrap"><div class="top10-bar-fill" style="width:${barW}%"></div></div></div></div>`;
+  }).join(''):`<div style="color:#9ca3af;font-size:12px;text-align:center;padding:20px">Nenhum dado</div>`;
+}
+
+// ═══════════════════════════════════════════
+// TABELA DEVEDORES
+// ═══════════════════════════════════════════
+function popularFiltros(){
+  const grupos=[...new Set(DADOS.map(d=>d.grupo).filter(Boolean))].sort();
+  const ufs=[...new Set(DADOS.map(d=>d.uf).filter(Boolean))].sort();
+  const fG=document.getElementById('fGrupo');const fU=document.getElementById('fUF');
+  const vG=fG.value;const vU=fU.value;
+  fG.innerHTML='<option value="">Todas</option>'+grupos.map(g=>`<option value="${g}">${g}</option>`).join('');
+  fU.innerHTML='<option value="">Todas</option>'+ufs.map(u=>`<option value="${u}">${u}</option>`).join('');
+  fG.value=vG;fU.value=vU;
+}
+
+function renderTabela(){
+  popularFiltros();
+  const busca=(document.getElementById('fBusca')?.value||'').toLowerCase();
+  const grupo=document.getElementById('fGrupo')?.value||'';
+  const uf=document.getElementById('fUF')?.value||'';
+  const status=document.getElementById('fStatus')?.value||'';
+  const ordem=document.getElementById('fOrdem')?.value||'saldo_desc';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+
+  let fil=DADOS.filter(d=>{
+    if(busca&&!d.cliente.toLowerCase().includes(busca)&&!(d.codigo||'').toLowerCase().includes(busca))return false;
+    if(grupo&&d.grupo!==grupo)return false;
+    if(uf&&d.uf!==uf)return false;
+    if(status==='contrato'&&!d.temContrato)return false;
+    if(status==='venc'){const dt=parseData(d.vencimento);if(d.temContrato)return false;if(dt&&Math.floor((hoje-dt)/86400000)<=0)return false;}
+    if(status==='avenc'){const dt=parseData(d.vencimento);if(d.temContrato)return false;if(!dt||Math.floor((hoje-dt)/86400000)>0)return false;}
+    return true;
+  });
+
+  fil.sort((a,b)=>{
+    if(ordem==='saldo_desc')return num(b.saldo)-num(a.saldo);
+    if(ordem==='saldo_asc')return num(a.saldo)-num(b.saldo);
+    if(ordem==='vencimento_asc'){const da=parseData(a.vencimento)||new Date(9999,0,1);const db=parseData(b.vencimento)||new Date(9999,0,1);return da-db;}
+    if(ordem==='cliente_asc')return a.cliente.localeCompare(b.cliente);
+    return 0;
+  });
+
+  const totalFil=fil.reduce((s,d)=>s+num(d.saldo),0);
+  const vencFil=fil.filter(d=>{if(d.temContrato)return false;const dt=parseData(d.vencimento);return !dt||Math.floor((hoje-dt)/86400000)>0;}).reduce((s,d)=>s+num(d.saldo),0);
+
+  document.getElementById('cardsPainel').innerHTML=`
+    <div class="card-kpi"><div class="ck-lbl">Total Filtrado</div><div class="ck-val">${moeda(totalFil)}</div><div class="ck-sub">${fil.length} registros</div></div>
+    <div class="card-kpi"><div class="ck-lbl">Vencido</div><div class="ck-val" style="color:#dc2626">${moeda(vencFil)}</div><div class="ck-sub">${fil.filter(d=>{const dt=parseData(d.vencimento);return!d.temContrato&&(!dt||Math.floor((hoje-dt)/86400000)>0)}).length} títulos</div></div>
+    <div class="card-kpi"><div class="ck-lbl">A Vencer</div><div class="ck-val" style="color:#16a34a">${moeda(totalFil-vencFil)}</div><div class="ck-sub">${fil.filter(d=>{const dt=parseData(d.vencimento);return!d.temContrato&&dt&&Math.floor((hoje-dt)/86400000)<=0}).length} títulos</div></div>
+    <div class="card-kpi"><div class="ck-lbl">Com Contrato</div><div class="ck-val" style="color:#2563eb">${fil.filter(d=>d.temContrato).length}</div><div class="ck-sub">registros</div></div>`;
+
+  const tbody=document.querySelector('#tabelaDados tbody');
+  if(!fil.length){
+    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:#9ca3af">Nenhum registro encontrado</td></tr>`;
+    document.getElementById('resumoPainel').innerHTML='';return;
+  }
+
+  tbody.innerHTML=fil.map(d=>{
+    const dt=parseData(d.vencimento);
+    const dias=dt?Math.floor((hoje-dt)/86400000):null;
+    let tagHtml='';
+    if(d.temContrato)tagHtml='<span class="tag contrato">Contrato</span>';
+    else if(dias===null)tagHtml='<span class="tag sem">—</span>';
+    else if(dias>0)tagHtml=`<span class="tag venc">Venc. ${dias}d</span>`;
+    else tagHtml=`<span class="tag avenc">Em ${Math.abs(dias)}d</span>`;
+    const cor=corEmpresa(d.grupo);
+    return`<tr>
+      <td><span style="font-weight:600;color:#111827">${esc(d.cliente)}</span></td>
+      <td style="color:#6b7280;font-size:11px">${esc(d.codigo||'—')}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:${cor};flex-shrink:0"></span>${esc(d.grupo||'—')}</span></td>
+      <td style="color:#6b7280;font-size:11px">${esc(d.filial||'—')}</td>
+      <td><span style="font-weight:600">${esc(d.uf||'—')}</span></td>
+      <td style="white-space:nowrap;font-size:11px">${dataBR(dt)}</td>
+      <td style="text-align:right;font-weight:700;color:#111827">${moeda(d.saldo)}</td>
+      <td>${tagHtml}</td>
+      <td class="obs-cell">${renderObs(d)}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-cinza" style="padding:3px 7px;font-size:11px" onclick="editarLinha('${d.id}')">✏️</button>
+        <button class="btn btn-cinza" style="padding:3px 7px;font-size:11px" onclick="abrirHistorico('${d.id}')">📋</button>
+        <button class="btn btn-vm" style="padding:3px 7px;font-size:11px" onclick="excluir('${d.id}')">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resumoPainel').innerHTML=`
+    <span>📋 <b>${fil.length}</b> registros</span>
+    <span>💰 Total: <b>${moeda(totalFil)}</b></span>
+    <span>🔴 Vencido: <b>${moeda(vencFil)}</b></span>`;
+}
+
+function ordenarCol(col){
+  const sel=document.getElementById('fOrdem');
+  if(col==='saldo')sel.value=sel.value==='saldo_desc'?'saldo_asc':'saldo_desc';
+  else if(col==='cliente')sel.value='cliente_asc';
+  else if(col==='vencimento')sel.value='vencimento_asc';
+  renderTabela();
+}
+
+function excluir(id){
+  if(!confirm('Excluir este registro?'))return;
+  DADOS=DADOS.filter(d=>d.id!==id);salvar();renderTudo();
+}
+
+// ═══════════════════════════════════════════
+// EDITAR LINHA
+// ═══════════════════════════════════════════
+function editarLinha(id){
+  const d=DADOS.find(x=>x.id===id);if(!d)return;
+  const campos=[
+    {key:'cliente',label:'Cliente',type:'text'},
+    {key:'codigo',label:'Código',type:'text'},
+    {key:'grupo',label:'Empresa',type:'text'},
+    {key:'filial',label:'Filial',type:'text'},
+    {key:'uf',label:'UF',type:'text'},
+    {key:'vencimento',label:'Vencimento',type:'date'},
+    {key:'saldo',label:'Saldo',type:'number'},
+  ];
+  document.getElementById('mhTitulo').textContent='✏️ Editar: '+d.cliente;
+  document.getElementById('mhBody').innerHTML=`
+    <div class="form-grid" style="margin-bottom:14px">
+      ${campos.map(c=>{
+        let val='';
+        if(c.type==='date'){const dt=parseData(d[c.key]);if(dt&&!isNaN(dt))val=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;}
+        else val=esc(String(d[c.key]||''));
+        return`<div class="form-campo"><label>${c.label}</label><input type="${c.type}" id="ed_${c.key}" value="${val}"/></div>`;
+      }).join('')}
+    </div>
+    <div class="form-campo" style="margin-bottom:10px">
+      <label>📋 Informações / Observações</label>
+      <textarea id="ed_obs" rows="4" style="width:100%;resize:vertical">${esc(d.obs||'')}</textarea>
+    </div>
+    <div class="form-campo" style="margin-bottom:14px">
+      <label>🔗 Link do Contrato PDF (Google Drive)</label>
+      <input type="url" id="ed_linkContrato" value="${esc(d.linkContrato||'')}" placeholder="https://drive.google.com/file/d/..."/>
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="form-campo">
+        <label>Adicionar ao Histórico</label>
+        <input type="text" id="ed_hist" placeholder="Registrar ocorrência..."/>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <input type="checkbox" id="ed_contrato" ${d.temContrato?'checked':''}>
+      <label for="ed_contrato" style="font-size:12px;font-weight:600;color:#374151">Possui contrato assinado</label>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-vd" onclick="salvarEdicao('${id}')">✅ Salvar</button>
+      <button class="btn btn-cinza" onclick="fecharHistorico()">Cancelar</button>
+    </div>`;
+  document.getElementById('modalHist').classList.add('open');
+}
+
+function salvarEdicao(id){
+  const d=DADOS.find(x=>x.id===id);if(!d)return;
+  d.cliente=document.getElementById('ed_cliente').value||d.cliente;
+  d.codigo=document.getElementById('ed_codigo').value;
+  d.grupo=document.getElementById('ed_grupo').value;
+  d.filial=document.getElementById('ed_filial').value;
+  d.uf=document.getElementById('ed_uf').value.toUpperCase().slice(0,2);
+  d.vencimento=document.getElementById('ed_vencimento').value;
+  d.saldo=num(document.getElementById('ed_saldo').value);
+  d.obs=document.getElementById('ed_obs').value;
+  d.linkContrato=document.getElementById('ed_linkContrato').value.trim();
+  d.temContrato=document.getElementById('ed_contrato').checked;
+  const hist=document.getElementById('ed_hist').value.trim();
+  if(hist){if(!d.historico)d.historico=[];d.historico.push({data:new Date().toISOString(),texto:hist});}
+  salvar();renderTudo();fecharHistorico();mostrarAviso('✅ Salvo!');
+}
+
+// ═══════════════════════════════════════════
+// HISTÓRICO
+// ═══════════════════════════════════════════
+function abrirHistorico(id){
+  const d=DADOS.find(x=>x.id===id);if(!d)return;
+  document.getElementById('mhTitulo').textContent='📋 Histórico: '+d.cliente;
+  const hist=d.historico||[];
+  document.getElementById('mhBody').innerHTML=`
+    <div style="margin-bottom:12px;display:flex;gap:8px">
+      <input type="text" id="novaObs" placeholder="Nova observação..." style="flex:1;border:1px solid #e5e7eb;border-radius:5px;padding:7px 10px;font-size:12px;outline:none">
+      <button class="btn btn-az" onclick="addObs('${id}')">Adicionar</button>
+    </div>
+    ${hist.length?hist.slice().reverse().map(h=>`
+      <div class="hist-item">
+        <div class="hist-data">${new Date(h.data).toLocaleString('pt-BR')}</div>
+        <div class="hist-texto">${linkificar(h.texto)}</div>
+      </div>`).join(''):'<div style="color:#9ca3af;font-size:12px;text-align:center;padding:20px">Nenhum registro no histórico</div>'}`;
+  document.getElementById('modalHist').classList.add('open');
+}
+
+function addObs(id){
+  const d=DADOS.find(x=>x.id===id);if(!d)return;
+  const txt=document.getElementById('novaObs').value.trim();if(!txt)return;
+  if(!d.historico)d.historico=[];
+  d.historico.push({data:new Date().toISOString(),texto:txt});
+  salvar();abrirHistorico(id);
+}
+
+function fecharHistorico(){document.getElementById('modalHist').classList.remove('open');}
+
+// ═══════════════════════════════════════════
+// CONTRATO
+// ═══════════════════════════════════════════
+function setTipoContrato(tipo,btn){
+  tipoContrato=tipo;
+  document.querySelectorAll('.config-options button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  calcularContrato();
+}
+
+function sugerirDevedores(){
+  const inp=document.getElementById('buscaDevedorContrato');
+  const lista=document.getElementById('sugestoesList');
+  const q=inp.value.toLowerCase().trim();
+  if(q.length<2){lista.style.display='none';return;}
+  const res=DADOS.filter(d=>d.cliente.toLowerCase().includes(q)||(d.codigo||'').toLowerCase().includes(q)).slice(0,8);
+  if(!res.length){lista.style.display='none';return;}
+  lista.innerHTML=res.map(d=>`<div class="sug-item" onclick="preencherContrato('${d.id}')"><div class="sug-nome">${esc(d.cliente)}</div><div class="sug-sub">${esc(d.grupo||'')} ${d.uf?'· '+d.uf:''} · ${moeda(d.saldo)}</div></div>`).join('');
+  lista.style.display='block';
+}
+
+function preencherContrato(id){
+  const d=DADOS.find(x=>x.id===id);if(!d)return;
+  document.getElementById('cNome').value=d.cliente||'';
+  document.getElementById('cDoc').value=d.codigo||'';
+  document.getElementById('cUF').value=d.uf||'';
+  document.getElementById('vOriginal').value=num(d.saldo)||'';
+  document.getElementById('sugestoesList').style.display='none';
+  document.getElementById('buscaDevedorContrato').value=d.cliente;
+  calcularContrato();
+}
+
+document.addEventListener('click',e=>{if(!e.target.closest('.busca-wrap'))document.getElementById('sugestoesList').style.display='none';});
+
+// ── PARCELAS EDITÁVEIS ──
+function calcularContrato(){
+  const orig=num(document.getElementById('vOriginal').value);
+  const entrada=num(document.getElementById('vEntrada').value);
+  const nparcelas=Math.max(1,parseInt(document.getElementById('vParcelas').value)||1);
+  const juros=num(document.getElementById('cfgJuros').value)/100;
+  const multa=num(document.getElementById('cfgMulta').value);
+  const despBanc=num(document.getElementById('vDespBanc').value);
+  const pefin=num(document.getElementById('vPefin').value);
+  const outros=num(document.getElementById('vOutros').value);
+  const totalEncargos=despBanc+pefin+outros;
+  const totalDivida=orig+totalEncargos;
+  const saldoParcelar=Math.max(0,totalDivida-entrada);
+
+  document.getElementById('tabelaCalculo').innerHTML=`
+    <tr><td>Valor Total da Dívida</td><td>${moeda(totalDivida)}</td></tr>
+    ${despBanc>0?`<tr><td>└ Desp. Bancária</td><td>${moeda(despBanc)}</td></tr>`:''}
+    ${pefin>0?`<tr><td>└ PEFIN</td><td>${moeda(pefin)}</td></tr>`:''}
+    ${outros>0?`<tr><td>└ Outros</td><td>${moeda(outros)}</td></tr>`:''}
+    ${entrada>0?`<tr><td>Entrada na assinatura</td><td style="color:#16a34a">– ${moeda(entrada)}</td></tr>`:''}
+    <tr><td>Saldo a parcelar</td><td><b>${moeda(saldoParcelar)}</b></td></tr>
+    <tr class="tot-row"><td>Multa por atraso</td><td>${multa.toFixed(1)}% + ${(juros*100).toFixed(2)}% a.m.</td></tr>`;
+
+  // Inicializa/recalcula parcelas se mudou número
+  if(tipoContrato==='parcelamento'&&nparcelas>0){
+    // Mantém parcelas já editadas, apenas ajusta quantidade
+    while(PARCELAS_EDIT.length<nparcelas){
+      const i=PARCELAS_EDIT.length;
+      // Distribui saldo igualmente
+      const val=i===nparcelas-1&&PARCELAS_EDIT.length>0
+        ?(saldoParcelar-PARCELAS_EDIT.reduce((s,p)=>s+p.valor,0))
+        :+(saldoParcelar/nparcelas).toFixed(2);
+      PARCELAS_EDIT.push({valor:Math.max(0,val),data:''});
+    }
+    if(PARCELAS_EDIT.length>nparcelas)PARCELAS_EDIT=PARCELAS_EDIT.slice(0,nparcelas);
+    renderParcelasEdit();
+    document.getElementById('boxParcelasContainer').style.display='block';
+  }else{
+    PARCELAS_EDIT=[];
+    document.getElementById('boxParcelas').innerHTML='<div style="color:#9ca3af;font-size:12px;padding:8px">Selecione "Confissão + Parcelamento" e defina o número de parcelas para ativar.</div>';
+    document.getElementById('boxParcelasContainer').style.display='block';
+    document.getElementById('addParcelaBtn').style.display='none';
+    document.getElementById('totalParcelasInfo').textContent='';
+  }
+}
+
+function renderParcelasEdit(){
+  const tot=PARCELAS_EDIT.reduce((s,p)=>s+num(p.valor),0);
+  const orig=num(document.getElementById('vOriginal').value);
+  const entrada=num(document.getElementById('vEntrada').value);
+  const despBanc=num(document.getElementById('vDespBanc').value);
+  const pefin=num(document.getElementById('vPefin').value);
+  const outros=num(document.getElementById('vOutros').value);
+  const totalDivida=orig+despBanc+pefin+outros;
+  const saldoParcelar=Math.max(0,totalDivida-entrada);
+  const diff=Math.round((tot-saldoParcelar)*100)/100;
+  const diffStr=Math.abs(diff)<0.02?'<span style="color:#16a34a;font-weight:700">✓ Balanceado</span>'
+    :`<span style="color:#dc2626;font-weight:700">${diff>0?'Excesso':'Faltam'}: ${moeda(Math.abs(diff))}</span>`;
+
+  let html=`<div class="parcelas-box">
+    <div class="parcelas-box-header">
+      <span>#</span><span>Vencimento</span><span>Valor (R$)</span><span></span>
+    </div>`;
+  PARCELAS_EDIT.forEach((p,i)=>{
+    html+=`<div class="parcela-row">
+      <div class="parcela-row-num">${i+1}</div>
+      <input type="date" value="${p.data||''}" onchange="PARCELAS_EDIT[${i}].data=this.value"/>
+      <input type="number" step="0.01" value="${p.valor.toFixed(2)}" onchange="PARCELAS_EDIT[${i}].valor=num(this.value);atualizarTotalParcelas()"/>
+      <button class="parcela-row-del" onclick="removerParcela(${i})">✕</button>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('boxParcelas').innerHTML=html;
+  document.getElementById('addParcelaBtn').style.display='flex';
+  document.getElementById('totalParcelasInfo').innerHTML=`Total parcelas: <b>${moeda(tot)}</b> · Saldo: <b>${moeda(saldoParcelar)}</b> · ${diffStr}`;
+}
+
+function atualizarTotalParcelas(){
+  const tot=PARCELAS_EDIT.reduce((s,p)=>s+num(p.valor),0);
+  const orig=num(document.getElementById('vOriginal').value);
+  const entrada=num(document.getElementById('vEntrada').value);
+  const despBanc=num(document.getElementById('vDespBanc').value);
+  const pefin=num(document.getElementById('vPefin').value);
+  const outros=num(document.getElementById('vOutros').value);
+  const totalDivida=orig+despBanc+pefin+outros;
+  const saldoParcelar=Math.max(0,totalDivida-entrada);
+  const diff=Math.round((tot-saldoParcelar)*100)/100;
+  const diffStr=Math.abs(diff)<0.02?'<span style="color:#16a34a;font-weight:700">✓ Balanceado</span>'
+    :`<span style="color:#dc2626;font-weight:700">${diff>0?'Excesso':'Faltam'}: ${moeda(Math.abs(diff))}</span>`;
+  document.getElementById('totalParcelasInfo').innerHTML=`Total parcelas: <b>${moeda(tot)}</b> · Saldo: <b>${moeda(saldoParcelar)}</b> · ${diffStr}`;
+}
+
+function adicionarParcela(){
+  PARCELAS_EDIT.push({valor:0,data:''});
+  document.getElementById('vParcelas').value=PARCELAS_EDIT.length;
+  renderParcelasEdit();
+}
+
+function removerParcela(i){
+  PARCELAS_EDIT.splice(i,1);
+  document.getElementById('vParcelas').value=PARCELAS_EDIT.length;
+  renderParcelasEdit();
+}
+
+// ═══════════════════════════════════════════
+// GERAR TEXTO DO CONTRATO
+// ═══════════════════════════════════════════
+function gerarContratoTexto(){
+  const g=id=>(document.getElementById(id)||{}).value||'';
+
+  // Credor
+  const crNome=g('crNome')||'[CREDORA]';
+  const crDoc=g('crDoc')||'[CNPJ]';
+  const crEnd=g('crEnd');
+  const crCidade=g('crCidade');
+  const crUFExtenso=g('crUFExtenso');
+  const crUF=g('crUF');
+  const crRep=g('crRep');
+  const crRepDoc=g('crRepDoc');
+  const crEmail=g('crEmail');
+
+  // Devedor
+  const nome=g('cNome')||'[DEVEDOR]';
+  const doc=g('cDoc')||'[CPF/CNPJ]';
+  const rg=g('cRg');
+  const prof=g('cProf');
+  const nac=g('cNac')||'brasileiro(a)';
+  const tel=g('cTel');
+  const email=g('cEmail');
+  const end=g('cEnd');
+  const cidade=g('cCidade');
+  const ufExtenso=g('cUFExtenso');
+  const uf=g('cUF');
+
+  // Valores
+  const orig=num(g('vOriginal'));
+  const entrada=num(g('vEntrada'));
+  const multa=num(g('cfgMulta'));
+  const despBanc=num(g('vDespBanc'));
+  const pefin=num(g('vPefin'));
+  const outros=num(g('vOutros'));
+  const totalDivida=orig+despBanc+pefin+outros;
+  const saldoParcelar=Math.max(0,totalDivida-entrada);
+  const origemDivida=g('vOrigemDivida');
+  const dataAssinatura=g('vDataAssinatura');
+
+  const dataAssinaturaExtenso=dataAssinatura?dataExtenso(dataAssinatura):'___ de __________ de ______';
+  const dataAssinaturaBR=dataAssinatura?dataBR(parseData(dataAssinatura)):'___/___/______';
+  const localData=`${crCidade||'[CIDADE]'}, ${dataAssinatura?dataExtenso(dataAssinatura):'___ de __________ de ______'}.`;
+
+  // Qualificação devedor
+  let qualDev=`${nome}, ${nac}`;
+  if(prof)qualDev+=`, ${prof}`;
+  if(doc)qualDev+=`, portador${nac.includes('a)')?'a':''} do CPF nº ${doc}`;
+  if(rg)qualDev+=`, RG nº ${rg}`;
+  if(end)qualDev+=`, residente e domiciliado${nac.includes('a)')?'a':''} em ${end}`;
+  if(cidade)qualDev+=`, ${cidade}`;
+  if(ufExtenso)qualDev+=`, ${ufExtenso}`;
+  if(tel)qualDev+=`, telefone ${tel}`;
+
+  // Qualificação credor
+  let qualCred=`${crNome}, inscrita no C.N.P.J. sob o n.º ${crDoc}`;
+  if(crEnd)qualCred+=`, com endereço em ${crEnd}`;
+  if(crCidade)qualCred+=`, ${crCidade}`;
+  if(crUFExtenso)qualCred+=`, ${crUFExtenso}`;
+
+  // Parcelas
+  let clausula2='';
+  let nClausulaForo=3;
+
+  if(tipoContrato==='parcelamento'&&PARCELAS_EDIT.length>0){
+    nClausulaForo=4;
+    const nParc=PARCELAS_EDIT.length;
+    const nParcExtenso=['uma','duas','três','quatro','cinco','seis','sete','oito','nove','dez'][nParc-1]||String(nParc);
+
+    let linhasParc='';
+    PARCELAS_EDIT.forEach(p=>{
+      const vStr=`${moeda(p.valor)} (${valorExtenso(p.valor)})`;
+      const dtStr=p.data?`com vencimento em ${dataBR(parseData(p.data))}`:'vencimento a definir';
+      linhasParc+=`<p class="parcela-linha">– ${vStr} ${dtStr}, através de boleto bancário;</p>`;
+    });
+
+    clausula2=`
+      <p class="clausula-titulo">CLÁUSULA SEGUNDA - Forma de Pagamento do Saldo Devedor</p>
+      <p>Em razão do DEVEDOR não dispor de recursos financeiros para adimplir o débito supra mencionado, solicitou e a CREDORA concordou em repactuar o saldo devedor que, devidamente atualizado, perfaz a quantia líquida, certa e exigível de <b>${moeda(totalDivida)} (${valorExtenso(totalDivida)})</b>, que deverá ser pago pelo DEVEDOR em ${nParc} (${nParcExtenso}) parcela${nParc>1?'s':''} da seguinte maneira:</p>
+      ${linhasParc}
+      ${email?`<p><b>Parágrafo Único:</b> O boleto deverá ser encaminhado para o e-mail: ${email}</p>`:''}`;
+  } else {
+    nClausulaForo=3;
+    clausula2=`
+      <p class="clausula-titulo">CLÁUSULA SEGUNDA - Forma de Pagamento</p>
+      <p>O valor de <b>${moeda(totalDivida)} (${valorExtenso(totalDivida)})</b> deverá ser pago pelo DEVEDOR em parcela única${PARCELAS_EDIT.length===1&&PARCELAS_EDIT[0].data?` com vencimento em <b>${dataBR(parseData(PARCELAS_EDIT[0].data))}</b>`:''}, através de boleto bancário.</p>
+      ${email?`<p><b>Parágrafo Único:</b> O boleto deverá ser encaminhado para o e-mail: ${email}</p>`:''}`;
+  }
+
+  return`
+    <div class="ctitulo">INSTRUMENTO PARTICULAR DE CONFISSÃO${tipoContrato==='parcelamento'?' E PARCELAMENTO':''} DE DÍVIDA</div>
+
+    <p>Pelo presente Instrumento Particular de Confissão${tipoContrato==='parcelamento'?' e Parcelamento':''} de Dívida, <b>${qualCred}</b>, doravante denominada <b>CREDORA</b>, e de outro lado <b>${qualDev}</b>, doravante denominado <b>DEVEDOR</b>, têm justos e acertado o que segue:</p>
+
+    <p class="clausula-titulo">CLÁUSULA PRIMEIRA - Valor Confessado e Aceito para Composição</p>
+    <p>O DEVEDOR confessa dever à CREDORA em ${dataAssinaturaExtenso}, a importância líquida, certa e exigível de <b>${moeda(totalDivida)} (${valorExtenso(totalDivida)})</b>, proveniente de dívida contraída pelo DEVEDOR, devidamente demonstrada no Parágrafo Único desta Cláusula, sendo o valor aceito pela CREDORA para a mencionada composição.</p>
+
+    <p><b>Parágrafo Único – Origem da Dívida</b><br/>
+    O valor da presente composição da dívida é de <b>${moeda(totalDivida)} (${valorExtenso(totalDivida)})</b>${origemDivida?`, proveniente de: ${origemDivida}`:`, proveniente de dívida contraída pelo DEVEDOR junto à CREDORA`}.</p>
+
+    ${clausula2}
+
+    <p class="clausula-titulo">CLÁUSULA TERCEIRA</p>
+    <p>O atraso no pagamento de qualquer das parcelas descritas na Cláusula Segunda acarretará no vencimento antecipado de todo o saldo devedor, que será imediatamente exigido, independente de notificação judicial ou extrajudicial, acrescido de correção pelo índice do <b>IPCA</b>, <b>1% (um por cento) de juros ao mês</b> e <b>${multa}% (${valorExtenso(multa).replace(' reais','').replace(' real','').trim()} por cento) de multa contratual</b>, além de custas processuais e honorários advocatícios.</p>
+
+    <p class="clausula-titulo">CLÁUSULA QUARTA</p>
+    <p>O DEVEDOR, por sua assinatura, e na melhor forma de direito, declara que anui e concorda com todos os termos e condições estabelecidas neste ato, e ratifica que se responsabiliza, perante a CREDORA, pelo integral e final cumprimento de todas as obrigações confessadas e assumidas neste instrumento.</p>
+
+    <p class="clausula-titulo">CLÁUSULA ${nClausulaForo==='3'?'QUINTA':'QUINTA'} - Disposições Especiais</p>
+    <p>As partes elegem o foro da Comarca de <b>${crCidade||'[CIDADE]'}/${crUF||'[UF]'}</b>, para dirimir quaisquer questões decorrentes deste instrumento, com renúncia de qualquer outro por mais privilegiado que seja ou se torne.</p>
+
+    <p>E por assim estarem justas e acordadas, firmam o presente instrumento, em 02 (duas) vias de igual teor, na presença de duas testemunhas, para que surta seus jurídicos e legais efeitos de direito.</p>
+
+    <p style="text-align:center;margin-top:30px">${localData}</p>
+
+    <div class="assinaturas-bloco">
+      <div class="assin-grid">
+        <div class="assin-item">
+          <div class="assin-linha">${crNome}</div>
+          <div class="assin-sub">CREDORA</div>
+        </div>
+        <div class="assin-item">
+          <div class="assin-linha">${nome}</div>
+          <div class="assin-sub">DEVEDOR</div>
+        </div>
+      </div>
+
+      <p style="text-align:center;margin-top:40px;font-size:12pt;font-weight:bold">Testemunhas:</p>
+      <div class="testemunhas">
+        <div class="test-item">
+          Nome: ____________________________<br/>
+          C.P.F: ____________________________
+        </div>
+        <div class="test-item">
+          Nome: ____________________________<br/>
+          C.P.F: ____________________________
+        </div>
+      </div>
+    </div>`;
+}
+
+function gerarPreviewContrato(){
+  document.getElementById('previewContrato').innerHTML=gerarContratoTexto();
+  const pw=document.getElementById('previewWrapper');
+  pw.classList.remove('hidden');pw.scrollIntoView({behavior:'smooth'});
+}
+
+function emitirContrato(){
+  const nome=document.getElementById('cNome').value;
+  if(!nome){mostrarAviso('⚠️ Preencha o nome do devedor','#fca5a5');return;}
+  const d=DADOS.find(x=>x.cliente===nome);
+  if(d){
+    d.temContrato=true;d.contratoData=new Date().toISOString();
+    if(!d.historico)d.historico=[];
+    d.historico.push({data:new Date().toISOString(),texto:`Contrato emitido em ${new Date().toLocaleDateString('pt-BR')}`});
+    salvar();
+  }
+  gerarPreviewContrato();mostrarAviso('✅ Contrato emitido!');
+}
+
+function imprimirContrato(){
+  const conteudo=document.getElementById('previewContrato').innerHTML;
+  if(!conteudo){mostrarAviso('⚠️ Gere a prévia primeiro','#fca5a5');return;}
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contrato</title>
+    <style>
+      @page{size:A4;margin:25mm 20mm}
+      body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.9;color:#000;text-align:justify;max-width:none;margin:0}
+      .ctitulo{text-align:center;font-size:13pt;font-weight:bold;text-transform:uppercase;text-decoration:underline;margin-bottom:24px;line-height:1.5}
+      .clausula-titulo{font-weight:bold;text-transform:uppercase;margin-top:20px;margin-bottom:4px;display:block}
+      p{margin-bottom:12px}
+      .parcela-linha{margin:4px 0 4px 30px}
+      .assinaturas-bloco{margin-top:60px}
+      .assin-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;text-align:center;margin-bottom:20px}
+      .assin-item{padding-top:70px}
+      .assin-linha{border-top:1px solid #000;padding-top:8px;font-weight:bold;text-transform:uppercase}
+      .assin-sub{margin-top:2px}
+      .testemunhas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}
+      .test-item{border-top:1px solid #000;padding-top:8px;line-height:2}
+      @media print{body{padding:0}}
+    </style>
+  </head><body>
+    <div style="text-align:center;margin-bottom:20px;padding:10px;background:#f0f0f0;font-family:Arial,sans-serif;font-size:12px" class="no-print">
+      <button onclick="window.print()" style="padding:8px 20px;background:#111827;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">🖨️ Imprimir / Salvar PDF</button>
+    </div>
+    <style>@media print{.no-print{display:none}}</style>
+    ${conteudo}</body></html>`);
+  win.document.close();win.focus();setTimeout(()=>win.print(),600);
+}
+
+function limparContrato(){
+  ['cNome','cDoc','cRg','cProf','cNac','cTel','cEmail','cEnd','cCidade','cUFExtenso','cUF',
+   'crNome','crDoc','crRep','crRepDoc','crEnd','crCidade','crUFExtenso','crUF','crEmail',
+   'vOriginal','vEntrada','vDataAssinatura','vOrigemDivida'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const cNac=document.getElementById('cNac');if(cNac)cNac.value='brasileiro(a)';
+  document.getElementById('vParcelas').value='1';
+  document.getElementById('cfgJuros').value='1';
+  document.getElementById('cfgMulta').value='2';
+  document.getElementById('vDespBanc').value='0';
+  document.getElementById('vPefin').value='0';
+  document.getElementById('vOutros').value='0';
+  document.getElementById('buscaDevedorContrato').value='';
+  document.getElementById('tabelaCalculo').innerHTML='';
+  document.getElementById('boxParcelas').innerHTML='';
+  document.getElementById('previewWrapper').classList.add('hidden');
+  document.getElementById('previewContrato').innerHTML='';
+  PARCELAS_EDIT=[];
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  carregar();
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharHistorico();});
+  document.getElementById('modalHist').addEventListener('click',e=>{if(e.target.id==='modalHist')fecharHistorico();});
+});
+</script>
+</body>
+</html>
